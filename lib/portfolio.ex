@@ -12,8 +12,8 @@ defmodule Portfolio do
   A portfolio is considered balanced if each asset comes within
   1% of its target allocation.
   """
-  def balanced?(assets, percent_threshold \\ 0.1) do
-    cap = portfolio_value(assets)
+  def balanced?(assets, percent_threshold \\ 0.01) do
+    cap = value(assets)
 
     Enum.all?(assets, fn {_, price, shares, target} ->
       percent =
@@ -27,9 +27,24 @@ defmodule Portfolio do
   end
 
   @doc """
+  The allocation percentage of each asset in the portfolio
+  """
+  def allocations(assets) do
+    cap = value(assets)
+
+    Enum.map(assets, fn {name, price, shares, _} ->
+      {name,
+       case cap do
+         0.0 -> 0.0
+         cap -> price * shares / cap
+       end}
+    end)
+  end
+
+  @doc """
   Value of the portfolio (shares * price)
   """
-  def portfolio_value(assets) do
+  def value(assets) do
     sum(assets, fn {_, price, shares, _} -> price * shares end)
   end
 
@@ -63,8 +78,8 @@ defmodule Portfolio do
 
     # Asset, count and allocation
     # Cash remaining
-    result = build_order(assets, order, cash_on_hand) |> Map.delete(:order) |> Map.values()
-    cap = portfolio_value(result)
+    result = build_order(assets, order, cash_on_hand) |> Map.values()
+    cap = value(result)
     cash_remaining = cash_on_hand - cap
 
     assets =
@@ -74,6 +89,8 @@ defmodule Portfolio do
             {name, shares, 0.0}
 
           cap ->
+            # TODO the percentage calculation is wrong because
+            # it needs to account for your existing holdings!
             {name, shares, price * shares / cap}
         end
       end)
@@ -94,19 +111,17 @@ defmodule Portfolio do
         Map.update!(order, name, fn {_, _, shares, _} = asset ->
           put_elem(asset, 2, shares + 1)
         end)
-        |> Map.put(:order, :buy)
 
       # Potentially buy more shares
-      more = build_order(assets, new_order, cash_on_hand - price) |> Map.put(:order, :more)
+      more = build_order(assets, new_order, cash_on_hand - price)
 
       # Don't buy a share
-      dont = build_order(rest, order, cash_on_hand) |> Map.put(:order, :dont)
+      dont = build_order(rest, order, cash_on_hand)
 
       # more goes first since if there's a tie, we want it to prefer
       # buying more shares
       Enum.min_by([more, new_order, dont], fn order ->
         order
-        |> Map.delete(:order)
         |> Map.values()
         |> test_statistic()
       end)
@@ -119,7 +134,7 @@ defmodule Portfolio do
   """
   @spec test_statistic(list(asset)) :: float()
   def test_statistic(assets) do
-    cap = portfolio_value(assets)
+    cap = value(assets)
 
     sum(assets, fn {_, price, shares, target} ->
       percent =
