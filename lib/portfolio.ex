@@ -37,12 +37,20 @@ defmodule Portfolio do
 
     # Asset, count and allocation
     # Cash remaining
-    result = build_order(assets, order, cash_on_hand) |> Map.values()
+    result = build_order(assets, order, cash_on_hand) |> Map.delete(:order) |> Map.values()
     cap = sum(result, fn {_, price, shares, _} -> price * shares end)
     cash_remaining = cash_on_hand - cap
 
     assets =
-      Enum.map(result, fn {name, price, shares, _} -> {name, shares, price * shares / cap} end)
+      Enum.map(result, fn {name, price, shares, _} ->
+        case cap do
+          0.0 ->
+            {name, shares, 0.0}
+
+          cap ->
+            {name, shares, price * shares / cap}
+        end
+      end)
 
     {assets, cash_remaining}
   end
@@ -60,15 +68,19 @@ defmodule Portfolio do
         Map.update!(order, name, fn {_, _, shares, _} = asset ->
           put_elem(asset, 2, shares + 1)
         end)
+        |> Map.put(:order, :buy)
 
       # Potentially buy more shares
-      more = build_order(assets, new_order, cash_on_hand - price)
+      more = build_order(assets, new_order, cash_on_hand - price) |> Map.put(:order, :more)
 
       # Don't buy a share
-      dont = build_order(rest, order, cash_on_hand)
+      dont = build_order(rest, order, cash_on_hand) |> Map.put(:order, :dont)
 
-      Enum.min_by([new_order, more, dont], fn order ->
+      # more goes first since if there's a tie, we want it to prefer
+      # buying more shares
+      Enum.min_by([more, new_order, dont], fn order ->
         order
+        |> Map.delete(:order)
         |> Map.values()
         |> test_statistic()
       end)

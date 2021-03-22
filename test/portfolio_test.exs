@@ -12,13 +12,15 @@ defmodule PortfolioTest do
                ],
                5.0
              ) == {[{"A", 2, 0.5}, {"B", 1, 0.5}], 1.0}
+    end
 
+    test "if there is cash leftover, and the portfolio is perfectly allocated, it should still use it!" do
       assert Portfolio.allocate_buys(
                [
-                 {"A", 3.0, 2, 1.0}
+                 {"A", 1.0, 2, 1.0}
                ],
-               7.0
-             ) == {[{"A", 1, 1.0}], 4.0}
+               5.0
+             ) == {[{"A", 5, 1.0}], 0.0}
     end
   end
 
