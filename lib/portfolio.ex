@@ -8,6 +8,32 @@ defmodule Portfolio do
            target_alloc :: float()}
 
   @doc """
+  Returns if the portfolio's allocations matches their targets.
+  A portfolio is considered balanced if each asset comes within
+  1% of its target allocation.
+  """
+  def balanced?(assets, percent_threshold \\ 0.1) do
+    cap = portfolio_value(assets)
+
+    Enum.all?(assets, fn {_, price, shares, target} ->
+      percent =
+        case cap do
+          0.0 -> 0.0
+          cap -> shares * price / cap
+        end
+
+      abs(target - percent) <= percent_threshold
+    end)
+  end
+
+  @doc """
+  Value of the portfolio (shares * price)
+  """
+  def portfolio_value(assets) do
+    sum(assets, fn {_, price, shares, _} -> price * shares end)
+  end
+
+  @doc """
   Given a portfolio comprising assets, their price,
   their current shares and their target allocation, this algorithm attempts to find
   the optimal buys that will consume the cash on-hand such that the portfolio becomes
@@ -38,7 +64,7 @@ defmodule Portfolio do
     # Asset, count and allocation
     # Cash remaining
     result = build_order(assets, order, cash_on_hand) |> Map.delete(:order) |> Map.values()
-    cap = sum(result, fn {_, price, shares, _} -> price * shares end)
+    cap = portfolio_value(result)
     cash_remaining = cash_on_hand - cap
 
     assets =
@@ -93,7 +119,7 @@ defmodule Portfolio do
   """
   @spec test_statistic(list(asset)) :: float()
   def test_statistic(assets) do
-    cap = sum(assets, fn {_, price, shares, _} -> price * shares end)
+    cap = portfolio_value(assets)
 
     sum(assets, fn {_, price, shares, target} ->
       percent =
