@@ -1,13 +1,15 @@
 defmodule PortfolioTest do
   use ExUnit.Case
 
+  alias Portfolio.Holding
+
   doctest Portfolio
 
   describe "allocate_buys/2" do
     test "when the portfolio starts unbalanced" do
       assets = [
-        {"A", 1.0, 2, 0.5},
-        {"B", 2.0, 2, 0.5}
+        Holding.new!("A", 1.0, 2, 0.5),
+        Holding.new!("B", 2.0, 2, 0.5)
       ]
 
       refute Portfolio.balanced?(assets)
@@ -16,9 +18,9 @@ defmodule PortfolioTest do
 
     test "when the portfolio starts balanced" do
       assets = [
-        {"A", 1.0, 1, 1 / 6},
-        {"B", 2.0, 1, 2 / 6},
-        {"C", 3.0, 1, 3 / 6}
+        Holding.new!("A", 1.0, 1, 1 / 6),
+        Holding.new!("B", 2.0, 1, 2 / 6),
+        Holding.new!("C", 3.0, 1, 3 / 6)
       ]
 
       assert Portfolio.balanced?(assets)
@@ -38,10 +40,10 @@ defmodule PortfolioTest do
 
     test "real example" do
       assets = [
-        {"SCHB", 96.1825, 4, 0.4},
-        {"SCHG", 128.8067, 3, 0.3},
-        {"SCHF", 37.875, 8, 0.2},
-        {"SCHE", 32.03, 4, 0.1}
+        Holding.new!("SCHB", 96.1825, 4, 0.4),
+        Holding.new!("SCHG", 128.8067, 3, 0.3),
+        Holding.new!("SCHF", 37.875, 8, 0.2),
+        Holding.new!("SCHE", 32.03, 4, 0.1)
       ]
 
       assert Portfolio.value(assets) == 1202.2701000000002
@@ -66,7 +68,7 @@ defmodule PortfolioTest do
 
     test "if there is cash leftover, and the portfolio is perfectly allocated, it should still use it!" do
       assets = [
-        {"A", 1.0, 2, 1.0}
+        Holding.new!("A", 1.0, 2, 1.0)
       ]
 
       assert Portfolio.balanced?(assets)
@@ -77,22 +79,22 @@ defmodule PortfolioTest do
   describe "test_statistic/1" do
     test "calculates the linear test statistic from the allocation and target allocation" do
       assert Portfolio.test_statistic([
-               {"A", 1.0, 2, 0.5},
-               {"B", 1.0, 2, 0.5}
+               Holding.new!("A", 1.0, 2, 0.5),
+               Holding.new!("B", 1.0, 2, 0.5)
              ]) == 0.0
 
       assert Portfolio.test_statistic([
-               {"A", 1.0, 2, 0.8},
-               {"B", 1.0, 2, 0.2}
+               Holding.new!("A", 1.0, 2, 0.8),
+               Holding.new!("B", 1.0, 2, 0.2)
              ]) == 0.18000000000000002
 
       assert Portfolio.test_statistic([
-               {"A", 1.0, 2, 0.55},
-               {"B", 1.0, 2, 0.45}
+               Holding.new!("A", 1.0, 2, 0.55),
+               Holding.new!("B", 1.0, 2, 0.45)
              ]) <
                Portfolio.test_statistic([
-                 {"A", 1.0, 2, 0.8},
-                 {"B", 1.0, 2, 0.2}
+                 Holding.new!("A", 1.0, 2, 0.8),
+                 Holding.new!("B", 1.0, 2, 0.2)
                ])
     end
   end
